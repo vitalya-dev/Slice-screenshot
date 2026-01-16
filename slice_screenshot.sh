@@ -18,7 +18,7 @@ WIDTH=$(magick identify -format "%w" "$INPUT_FILE")
 case "$FORMAT" in
   "a55")
     echo "Mode: Samsung Galaxy A55 (Ratio 2.1667)"
-    RATIO=2.1667
+    RATIO=1.95
     ;;
   "a4")
     echo "Mode: Standard A4 Paper (Ratio 1.4142)"
