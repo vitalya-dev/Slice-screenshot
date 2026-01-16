@@ -24,4 +24,4 @@ RATIO=1.4142
 HEIGHT=$(awk -v w="$WIDTH" -v r="$RATIO" 'BEGIN { printf "%.0f", w * r }')
 
 echo "Calculated Slice Height: $HEIGHT pixels"
-echo "Slice Dimensions: ${WIDTH}x${HEIGHT}"
+echo "Slice gv ${WIDTH}x${HEIGHT}"
