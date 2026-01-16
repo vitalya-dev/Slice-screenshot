@@ -14,7 +14,24 @@ WIDTH=$(magick identify -format "%w" "$INPUT_FILE")
 
 # 3. Calculate the height for A4 format
 # A4 Aspect Ratio is approx 1.4142
-RATIO=1.4142
+# 1. Capture the second argument, default to "a4" if empty
+FORMAT="${2:-a4}"
+
+# 2. Set the Ratio based on the format
+case "$FORMAT" in
+  "a55")
+    echo "Mode: Samsung Galaxy A55 (Ratio 2.1667)"
+    RATIO=2.1667
+    ;;
+  "a4")
+    echo "Mode: Standard A4 Paper (Ratio 1.4142)"
+    RATIO=1.4142
+    ;;
+  *)
+    echo "Unknown format '$FORMAT'. Defaulting to A4."
+    RATIO=1.4142
+    ;;
+esac
 HEIGHT=$(awk -v w="$WIDTH" -v r="$RATIO" 'BEGIN { printf "%.0f", w * r }')
 
 echo "Processing: $INPUT_FILE"
