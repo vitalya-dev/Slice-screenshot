@@ -15,3 +15,13 @@ WIDTH=$(magick identify -format "%w" "$INPUT_FILE")
 
 echo "Input File: $INPUT_FILE"
 echo "Detected Width: $WIDTH pixels"
+
+# 3. Calculate the height for A4 format
+# A4 Aspect Ratio is approx 1.4142 (297mm / 210mm)
+RATIO=1.4142
+
+# We use awk to multiply width by ratio and round to nearest integer
+HEIGHT=$(awk -v w="$WIDTH" -v r="$RATIO" 'BEGIN { printf "%.0f", w * r }')
+
+echo "Calculated Slice Height: $HEIGHT pixels"
+echo "Slice Dimensions: ${WIDTH}x${HEIGHT}"
