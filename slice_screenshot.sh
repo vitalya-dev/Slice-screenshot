@@ -8,43 +8,71 @@ if [ -z "$1" ]; then
 fi
 
 INPUT_FILE="$1"
-# Get the format from the second argument, default to "a4" if empty
 FORMAT="${2:-a4}"
 
-# 2. Get the width of the image automatically
+# 2. Get Width and TOTAL Height of the original image
 WIDTH=$(magick identify -format "%w" "$INPUT_FILE")
+TOTAL_HEIGHT=$(magick identify -format "%h" "$INPUT_FILE")
 
 # 3. Determine Ratio based on format
 case "$FORMAT" in
   "a55")
-    echo "Mode: Samsung Galaxy A55 (Ratio 2.1667)"
-    RATIO=1.95
+    RATIO=1.95   # Safe height for Galaxy A55
     ;;
   "a4")
-    echo "Mode: Standard A4 Paper (Ratio 1.4142)"
-    RATIO=1.4142
+    RATIO=1.4142 # Standard A4
     ;;
   *)
-    echo "Warning: Unknown format '$FORMAT'. Defaulting to A4."
     RATIO=1.4142
     ;;
 esac
 
-# 4. Calculate Height
-HEIGHT=$(awk -v w="$WIDTH" -v r="$RATIO" 'BEGIN { printf "%.0f", w * r }')
+# 4. Calculate Slice Height and Overlap
+# SLICE_HEIGHT: Width * Ratio
+SLICE_HEIGHT=$(awk -v w="$WIDTH" -v r="$RATIO" 'BEGIN { printf "%.0f", w * r }')
 
-echo "Processing: $INPUT_FILE"
-echo "Slicing with dimensions: ${WIDTH}x${HEIGHT}"
+# OVERLAP: We set this to roughly 8% of the slice height (approx 150-200px)
+OVERLAP=$(awk -v h="$SLICE_HEIGHT" 'BEGIN { printf "%.0f", h * 0.08 }')
 
-# 5. Execute the Magick command
-# We use "${INPUT_FILE%.*}" to strip the original extension
-OUTPUT_NAME="${INPUT_FILE%.*}_${FORMAT}_part_%d.jpg"
+# STEP: How much we move down (Height - Overlap)
+STEP=$((SLICE_HEIGHT - OVERLAP))
 
-magick "$INPUT_FILE" \
-    -crop "${WIDTH}x${HEIGHT}" \
+echo "--- Settings ---"
+echo "Format: $FORMAT"
+echo "Slice Height: $SLICE_HEIGHT px"
+echo "Overlap: $OVERLAP px"
+echo "----------------"
+
+# 5. The Slicing Loop
+CURRENT_Y=0
+COUNTER=0
+
+while [ $CURRENT_Y -lt $TOTAL_HEIGHT ]; do
+  
+  # Naming: image_a55_part_00.jpg, _01.jpg, etc.
+  OUTPUT_NAME="${INPUT_FILE%.*}_${FORMAT}_part_$(printf "%02d" $COUNTER).jpg"
+  
+  # MAGICK COMMAND EXPLAINED:
+  # 1. -crop: Cut the specific piece at the current Y position.
+  # 2. +repage: Reset the canvas logic so it doesn't "remember" it was part of a big image.
+  # 3. -background white: Set the fill color to white.
+  # 4. -gravity North: Pin the image to the TOP (so white space goes to the bottom).
+  # 5. -extent: Force the canvas to be the full calculated size.
+  
+  magick "$INPUT_FILE" \
+    -crop "${WIDTH}x${SLICE_HEIGHT}+0+${CURRENT_Y}" \
     +repage \
-    -extent "${WIDTH}x${HEIGHT}" \
-    -reverse \
+    -background white \
+    -gravity North \
+    -extent "${WIDTH}x${SLICE_HEIGHT}" \
     "$OUTPUT_NAME"
 
-echo "Done! Created slices starting with ${OUTPUT_NAME}"
+  echo "Created: $OUTPUT_NAME (Offset: $CURRENT_Y)"
+
+  # Move the window down
+  CURRENT_Y=$((CURRENT_Y + STEP))
+  COUNTER=$((COUNTER + 1))
+
+done
+
+echo "Done! Generated $COUNTER images."
