@@ -26,10 +26,18 @@ SLICE_HEIGHT=$(awk -v w="$WIDTH" -v r="$RATIO" 'BEGIN { printf "%.0f", w * r }')
 OVERLAP=$(awk -v h="$SLICE_HEIGHT" 'BEGIN { printf "%.0f", h * 0.08 }')
 STEP=$((SLICE_HEIGHT - OVERLAP))
 
+# Calculate Font Size (Scale it relative to image width, approx 1/40th)
+FONT_SIZE=$(awk -v w="$WIDTH" 'BEGIN { printf "%.0f", w / 40 }')
+
+# Calculate Y-Position for "Previous Page" text (Bottom of the Overlap box)
+# We want it inside the gray box, near the bottom edge.
+PREV_TEXT_Y=$(awk -v o="$OVERLAP" -v f="$FONT_SIZE" 'BEGIN { printf "%.0f", o - (f * 1.2) }')
+
 echo "--- Settings ---"
 echo "Format: $FORMAT"
 echo "Slice Height: $SLICE_HEIGHT px"
 echo "Overlap: $OVERLAP px"
+echo "Font Size: $FONT_SIZE pt"
 echo "----------------"
 
 # 5. The Slicing Loop
@@ -40,14 +48,34 @@ while [ $CURRENT_Y -lt $TOTAL_HEIGHT ]; do
   
   OUTPUT_NAME="${INPUT_FILE%.*}_${FORMAT}_part_$(printf "%02d" $COUNTER).jpg"
   
+  CURRENT_PAGE_NUM=$((COUNTER + 1))
+  PREV_PAGE_NUM=$COUNTER
+
   # Initialize empty array for drawing arguments
   DRAW_ARGS=()
 
-  # Only add drawing commands if this is NOT the first page (Counter > 0)
+  # --- 1. CURRENT PAGE NUMBER (Bottom Right of Image) ---
+  DRAW_ARGS+=(-gravity "SouthEast")
+  DRAW_ARGS+=(-pointsize "$FONT_SIZE")
+  DRAW_ARGS+=(-fill "black")
+  # Add white stroke (outline) to make text readable on dark backgrounds
+  DRAW_ARGS+=(-stroke "white" -strokewidth 3 -annotate "+${FONT_SIZE}+${FONT_SIZE}" "Page $CURRENT_PAGE_NUM")
+  DRAW_ARGS+=(-stroke "none" -annotate "+${FONT_SIZE}+${FONT_SIZE}" "Page $CURRENT_PAGE_NUM")
+
+  # --- 2. OVERLAP ZONE (Top) ---
+  # Only add if this is NOT the first page
   if [ $COUNTER -gt 0 ]; then
-      # Add the gray tint rectangle ONLY
+      
+      # A. Draw the gray tint rectangle
+      DRAW_ARGS+=(-gravity "NorthWest")
       DRAW_ARGS+=(-fill "rgba(0,0,0,0.1)")
       DRAW_ARGS+=(-draw "rectangle 0,0 $WIDTH,$OVERLAP")
+      
+      # B. Draw "Page X" (Previous) inside the gray box
+      # We position it at NorthEast (Top Right), but push it down to the bottom of the gray box
+      DRAW_ARGS+=(-gravity "NorthEast")
+      DRAW_ARGS+=(-fill "rgba(0,0,0,0.5)") # Semi-transparent text
+      DRAW_ARGS+=(-annotate "+${FONT_SIZE}+${PREV_TEXT_Y}" "Page $PREV_PAGE_NUM")
   fi
 
   # Execute Magick
@@ -60,7 +88,7 @@ while [ $CURRENT_Y -lt $TOTAL_HEIGHT ]; do
     "${DRAW_ARGS[@]}" \
     "$OUTPUT_NAME"
 
-  echo "Created: $OUTPUT_NAME"
+  echo "Created: $OUTPUT_NAME (Page $CURRENT_PAGE_NUM)"
 
   CURRENT_Y=$((CURRENT_Y + STEP))
   COUNTER=$((COUNTER + 1))
@@ -73,14 +101,11 @@ echo "Reordering timestamps..."
 # 6. FORCE timestamps (The Sort Fix)
 for (( i=0; i<COUNTER; i++ )); do
    TARGET_FILE="${INPUT_FILE%.*}_${FORMAT}_part_$(printf "%02d" $i).jpg"
-   
    if date --version >/dev/null 2>&1; then
-       # Linux
        touch -d "$i seconds ago" "$TARGET_FILE"
    else
-       # macOS
        touch -A -$(printf "%02d" $i) "$TARGET_FILE"
    fi
 done
 
-echo "Done! 'Part_00' is the newest. Overlap areas are marked with gray."
+echo "Done! 'Part_00' is the newest."
