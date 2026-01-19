@@ -40,18 +40,17 @@ while [ $CURRENT_Y -lt $TOTAL_HEIGHT ]; do
   
   OUTPUT_NAME="${INPUT_FILE%.*}_${FORMAT}_part_$(printf "%02d" $COUNTER).jpg"
   
-  # Initialize an empty array for drawing arguments
+  # Initialize empty array for drawing arguments
   DRAW_ARGS=()
 
   # Only add drawing commands if this is NOT the first page (Counter > 0)
   if [ $COUNTER -gt 0 ]; then
-      # Add the gray tint rectangle
+      # Add the gray tint rectangle ONLY
       DRAW_ARGS+=(-fill "rgba(0,0,0,0.1)")
       DRAW_ARGS+=(-draw "rectangle 0,0 $WIDTH,$OVERLAP")
   fi
 
   # Execute Magick
-  # We use "${DRAW_ARGS[@]}" to safely expand the array
   magick "$INPUT_FILE" \
     -crop "${WIDTH}x${SLICE_HEIGHT}+0+${CURRENT_Y}" \
     +repage \
@@ -71,7 +70,7 @@ done
 echo "----------------"
 echo "Reordering timestamps..."
 
-# 6. FORCE timestamps
+# 6. FORCE timestamps (The Sort Fix)
 for (( i=0; i<COUNTER; i++ )); do
    TARGET_FILE="${INPUT_FILE%.*}_${FORMAT}_part_$(printf "%02d" $i).jpg"
    
@@ -84,4 +83,4 @@ for (( i=0; i<COUNTER; i++ )); do
    fi
 done
 
-echo "Done! 'Part_00' is the newest. Overlap areas are marked."
+echo "Done! 'Part_00' is the newest. Overlap areas are marked with gray."
