@@ -26,11 +26,12 @@ SLICE_HEIGHT=$(awk -v w="$WIDTH" -v r="$RATIO" 'BEGIN { printf "%.0f", w * r }')
 OVERLAP=$(awk -v h="$SLICE_HEIGHT" 'BEGIN { printf "%.0f", h * 0.08 }')
 STEP=$((SLICE_HEIGHT - OVERLAP))
 
-# Calculate Font Size (Scale it relative to image width, approx 1/40th)
-FONT_SIZE=$(awk -v w="$WIDTH" 'BEGIN { printf "%.0f", w / 40 }')
+# Calculate Font Size (Scale it relative to image width)
+# CHANGED: Increased divisor from 40 to 60 to make font smaller
+FONT_SIZE=$(awk -v w="$WIDTH" 'BEGIN { printf "%.0f", w / 60 }')
 
 # Calculate Y-Position for "Previous Page" text
-PREV_TEXT_Y=$(awk -v o="$OVERLAP" -v f="$FONT_SIZE" 'BEGIN { printf "%.0f", o - (f * 1.2) }')
+PREV_TEXT_Y=$(awk -v o="$OVERLAP" -v f="$FONT_SIZE" 'BEGIN { printf "%.0f", o - (f * 1.5) }')
 
 echo "--- Settings ---"
 echo "Format: $FORMAT"
@@ -54,7 +55,6 @@ while [ $CURRENT_Y -lt $TOTAL_HEIGHT ]; do
   DRAW_ARGS=()
 
   # --- 1. CURRENT PAGE NUMBER (Bottom Right) ---
-  # Text changed from "Page X" to "стр. X"
   DRAW_ARGS+=(-gravity "SouthEast")
   DRAW_ARGS+=(-pointsize "$FONT_SIZE")
   DRAW_ARGS+=(-fill "black")
@@ -107,4 +107,4 @@ for (( i=0; i<COUNTER; i++ )); do
    fi
 done
 
-echo "Done! Slices created with 'стр.' labels."
+echo "Done! Slices created with smaller 'стр.' labels."
