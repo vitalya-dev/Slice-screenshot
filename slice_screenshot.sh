@@ -29,8 +29,7 @@ STEP=$((SLICE_HEIGHT - OVERLAP))
 # Calculate Font Size (Scale it relative to image width, approx 1/40th)
 FONT_SIZE=$(awk -v w="$WIDTH" 'BEGIN { printf "%.0f", w / 40 }')
 
-# Calculate Y-Position for "Previous Page" text (Bottom of the Overlap box)
-# We want it inside the gray box, near the bottom edge.
+# Calculate Y-Position for "Previous Page" text
 PREV_TEXT_Y=$(awk -v o="$OVERLAP" -v f="$FONT_SIZE" 'BEGIN { printf "%.0f", o - (f * 1.2) }')
 
 echo "--- Settings ---"
@@ -54,28 +53,28 @@ while [ $CURRENT_Y -lt $TOTAL_HEIGHT ]; do
   # Initialize empty array for drawing arguments
   DRAW_ARGS=()
 
-  # --- 1. CURRENT PAGE NUMBER (Bottom Right of Image) ---
+  # --- 1. CURRENT PAGE NUMBER (Bottom Right) ---
+  # Text changed from "Page X" to "стр. X"
   DRAW_ARGS+=(-gravity "SouthEast")
   DRAW_ARGS+=(-pointsize "$FONT_SIZE")
   DRAW_ARGS+=(-fill "black")
-  # Add white stroke (outline) to make text readable on dark backgrounds
-  DRAW_ARGS+=(-stroke "white" -strokewidth 3 -annotate "+${FONT_SIZE}+${FONT_SIZE}" "Page $CURRENT_PAGE_NUM")
-  DRAW_ARGS+=(-stroke "none" -annotate "+${FONT_SIZE}+${FONT_SIZE}" "Page $CURRENT_PAGE_NUM")
+  # White outline for readability
+  DRAW_ARGS+=(-stroke "white" -strokewidth 3 -annotate "+${FONT_SIZE}+${FONT_SIZE}" "стр. $CURRENT_PAGE_NUM")
+  DRAW_ARGS+=(-stroke "none" -annotate "+${FONT_SIZE}+${FONT_SIZE}" "стр. $CURRENT_PAGE_NUM")
 
   # --- 2. OVERLAP ZONE (Top) ---
   # Only add if this is NOT the first page
   if [ $COUNTER -gt 0 ]; then
       
-      # A. Draw the gray tint rectangle
+      # A. Gray tint rectangle
       DRAW_ARGS+=(-gravity "NorthWest")
       DRAW_ARGS+=(-fill "rgba(0,0,0,0.1)")
       DRAW_ARGS+=(-draw "rectangle 0,0 $WIDTH,$OVERLAP")
       
-      # B. Draw "Page X" (Previous) inside the gray box
-      # We position it at NorthEast (Top Right), but push it down to the bottom of the gray box
+      # B. "Previous Page" text inside gray box
       DRAW_ARGS+=(-gravity "NorthEast")
-      DRAW_ARGS+=(-fill "rgba(0,0,0,0.5)") # Semi-transparent text
-      DRAW_ARGS+=(-annotate "+${FONT_SIZE}+${PREV_TEXT_Y}" "Page $PREV_PAGE_NUM")
+      DRAW_ARGS+=(-fill "rgba(0,0,0,0.5)") 
+      DRAW_ARGS+=(-annotate "+${FONT_SIZE}+${PREV_TEXT_Y}" "стр. $PREV_PAGE_NUM")
   fi
 
   # Execute Magick
@@ -88,7 +87,7 @@ while [ $CURRENT_Y -lt $TOTAL_HEIGHT ]; do
     "${DRAW_ARGS[@]}" \
     "$OUTPUT_NAME"
 
-  echo "Created: $OUTPUT_NAME (Page $CURRENT_PAGE_NUM)"
+  echo "Created: $OUTPUT_NAME (стр. $CURRENT_PAGE_NUM)"
 
   CURRENT_Y=$((CURRENT_Y + STEP))
   COUNTER=$((COUNTER + 1))
@@ -108,4 +107,4 @@ for (( i=0; i<COUNTER; i++ )); do
    fi
 done
 
-echo "Done! 'Part_00' is the newest."
+echo "Done! Slices created with 'стр.' labels."
